@@ -11,13 +11,15 @@ public class CRDT_Document
         private final CRDT_Node head; // the first node dummy lowkey
         private final Map<Identifier, CRDT_Node> index = new HashMap<>();
 
-        public CRDT_Document(String user) {
+        public CRDT_Document(String user)
+        {
             this.Userid = user;
             this.head = new CRDT_Node('\0', new Identifier(user, -1)); // Dummy head
             index.put(head.getId(), head);
         }
 
-        private Identifier nextId() {
+        private Identifier nextId()
+        {
             return new Identifier(Userid, DocCounter++); //userA rozana r->(userA,1), o->(userA,2)
         }
     /// /////////////////////////////////////////////////////////////////////////////////////////////
@@ -27,57 +29,75 @@ public class CRDT_Document
     /// 	•	delete(int position, String userId)
     /// 	•	merge(List<RemoteEdit>)
     /// 	•	String toPlainText())
-        public Identifier localInsert(int position, char c) {
-            CRDT_Node prev = findByVisiblePosition(position - 1);
-            Identifier newId = nextId();
-            CRDT_Node node = new CRDT_Node(c, newId);
-            addNode(prev, node);
-            return newId;
+    /// for mee
+        public Identifier localInsert(int position, char c)
+        {
+            CRDT_Node prev = find_by_visiblePosition(position - 1); //get prev index
+            Identifier newId = nextId(); //get new unique id
+            CRDT_Node node = new CRDT_Node(c, newId); //create node with the new id and the value
+            addNode(prev, node); // add it and update the hashmap
+            return newId; // return the new id so that remote users can use it
         }
+/// for remote users
 
-        public void remoteInsert(Identifier prevId, Identifier newId, char c) {
+        public void remoteInsert(Identifier prevId, Identifier newId, char c)
+        { //newid howa ely tale3 mn local insert 3nd ellaptop eltany
             CRDT_Node prev = index.get(prevId);
-            if (prev == null) return;
-            CRDT_Node node = new CRDT_Node(c, newId);
+            if (prev == null)
+            {return;} //for safety in case the message arrived out of order
+            CRDT_Node node = new CRDT_Node(c, newId); //id received from remote user
             addNode(prev, node);
-        }
+        } // called by network when receiving char from remote user
 
-        public void delete(Identifier id) {
+        public void delete(Identifier id)
+        {
             CRDT_Node node = index.get(id);
             if (node != null) node.delete();
         }
 
-        private void addNode(CRDT_Node prev, CRDT_Node node) {
+        private void addNode(CRDT_Node prev, CRDT_Node node)
+        {
             prev.insertNext(node);
-            index.put(node.getId(), node);
+            index.put(node.getId(), node); //for map->hashmap
         }
 
-        public String toPlainText() {
+        public String toPlainText()
+        {
             StringBuilder sb = new StringBuilder();
-            traverse(head, sb);
-            return sb.toString();
+            traverse(head, sb); // traverse the whole tree to append the text to the string builder then turning it to a s tring
+            return sb.toString(); //while ignoring deleted nodes
         }
-
-        private void traverse(CRDT_Node node, StringBuilder sb) {
-            for (CRDT_Node nxt : node.getNext()) {
-                if (!nxt.isDeleted()) sb.append(nxt.getValue());
-                traverse(nxt, sb);
+///////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// helper functionss//////////////////////////////////////////
+        private void traverse(CRDT_Node node, StringBuilder sb)
+        {
+            for (CRDT_Node nxt : node.getNext())  //hanmsek kol node w n3ady ala children depth first then elforloop ensures law andy kaza child ha3ady alehom bardo
+            {
+                if (!nxt.isDeleted()) sb.append(nxt.getValue()); // law mesh deleted hayhotaha gher keda ignore
+                traverse(nxt, sb); //call it again for next child
             }
         }
 
-        private CRDT_Node findByVisiblePosition(int pos) {
-            final int[] count = {-1};
-            return findRecursive(head, pos, count);
+        private CRDT_Node find_by_visiblePosition(int pos)
+        {
+            final int[] count = {-1}; //for head //array for recursion instead of normal int //for java ig
+            return find_by_recursion(head, pos, count);
         }
 
-        private CRDT_Node findRecursive(CRDT_Node node, int targetPos, int[] count) {
-            for (CRDT_Node nxt : node.getNext()) {
-                if (!nxt.isDeleted()) count[0]++;
-                if (count[0] == targetPos) return nxt;
-                CRDT_Node found = findRecursive(nxt, targetPos, count);
-                if (found != null) return found;
+        private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count)
+        {
+            for (CRDT_Node nxtnode : node.getNext())
+
+            {
+                if (!nxtnode.isDeleted())
+                { count[0]++;} // ignoring deleted nodes (to get position elsah)
+                if (count[0] == targetPos)
+                {return nxtnode;}
+                CRDT_Node found = find_by_recursion(nxtnode, targetPos, count);
+                if (found != null)
+                {return found;}
             }
-            return node;
+            return node; //return last node w2efna andaha
         }
     }
 

@@ -8,7 +8,8 @@ public class CRDT_Node {
     private boolean deleted = false;  //0->not deleted //1->deleted
     private  List<CRDT_Node> next = new ArrayList<>(); //list of nodes after this one
 // change next to final if we reallly have to but we will delete insert and the setter which make us have to handle pointers manually //
-    public CRDT_Node(char value, Identifier id) {
+    public CRDT_Node(char value, Identifier id)
+    {
         this.value = value;
         this.id = id;
     }
