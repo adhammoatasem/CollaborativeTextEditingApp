@@ -1,5 +1,6 @@
 package com.APTproject.CollabTextEditing.model;
 
+import CRDT.CRDT_Document;
 import lombok.*;
 
 import java.util.Set;
@@ -8,10 +9,8 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 public class CollabSession {
-    private String sessionId;
-    private String viewerCode;
-    private String editorCode;
-    private String documentContent;
+    private SessionCodes sessionCodes;
+    private final CRDT_Document crdt;
     private Set<User> users;
 
     public void addUser(User user){

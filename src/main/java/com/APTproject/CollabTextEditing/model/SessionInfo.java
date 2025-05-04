@@ -7,5 +7,5 @@ import lombok.*;
 @AllArgsConstructor
 public class SessionInfo {
     private String sessionId;
-    private String message;
+    private UserRole role;
 }

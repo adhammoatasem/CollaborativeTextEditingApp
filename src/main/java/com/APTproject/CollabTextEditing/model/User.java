@@ -8,12 +8,11 @@ import java.util.UUID;
 @Getter
 @Setter
 public class User {
-    private String userId = UUID.randomUUID().toString();;
     private String username;
+    private UserRole role;
     String WebSocketSessionID;
 
-    public User(String username, String webSocketSessionID) {
+    public User(String username) {
         this.username = username;
-        this.WebSocketSessionID = webSocketSessionID;
     }
 }

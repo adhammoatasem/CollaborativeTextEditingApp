@@ -9,11 +9,12 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class EditMessage {
-    private String type;
     private String action;
     private String charValue;
+    private String prevId;
     private String positionId;
-    private String sessionId;
     private String userId;
+    private String sessionId;
+    //private long timestamp;
 
 }
