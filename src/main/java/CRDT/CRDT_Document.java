@@ -711,14 +711,54 @@ public void printIdentifiers() {
         }
     }
     /// ////////////////////////////////////Remote operation class //////////////////////////////////////////
-//    public void applyRemoteOperation(Remote_Operation op)
-//    {
-//        if (op.getType() == Remote_Operation.Type.INSERT) {
-//            remoteInsert(op.getPrevId(), op.getNewId(), op.getValue());
-//        } else {
-//            delete(op.getTargetId());
-//        }
+    public void applyRemoteOperation(Remote_Operation op)
+    {
+        if (op.getType() == Remote_Operation.Type.INSERT) {
+            remoteInsert(op.getPrevId(), op.getNewId(), op.getValue());
+        } else {
+            delete(op.getTargetId());
+        }
+    }
+    /// ////////////////////////////////////////////////////////
+//    public Remote_Operation createInsertOperation(int position, char c) {
+//        CRDT_Node prev = find_by_visiblePosition(position - 1);
+//        Identifier newId = nextId();
+//        CRDT_Node node = new CRDT_Node(c, newId);
+//        addNode(prev, node);
+//        pushToUndoStack(new Operation(Operation.Type.INSERT, node, position));
+//        redoStack.clear();
+//        return new Remote_Operation(prev.getId(), newId, c);
 //    }
+//    public Remote_Operation createDeleteOperation(Identifier id) {
+//        CRDT_Node node = index.get(id);
+//        if (node != null) {
+//            node.delete();
+//            pushToUndoStack(new Operation(Operation.Type.DELETE, node, -1));
+//            redoStack.clear();
+//            return new Remote_Operation(id);
+//        }
+//        return null;
+//    }
+    /// //after edit message
+    public Remote_Operation createInsertOperation(int position, char c) {
+        CRDT_Node prev = find_by_visiblePosition(position - 1); // Find previous node
+        Identifier newId = nextId(); // Generate a unique identifier
+        CRDT_Node node = new CRDT_Node(c, newId); // Create a new node
+        addNode(prev, node); // Add the node to the CRDT document
+        return new Remote_Operation(prev.getId(), newId, c); // Return the operation
+    }
+
+
+    public Remote_Operation createDeleteOperation(String targetId) {
+        Identifier id = Identifier.fromString(targetId); // Parse the identifier
+        CRDT_Node node = index.get(id); // Find the node by its identifier
+        if (node != null) {
+            node.delete(); // Mark the node as deleted
+            return new Remote_Operation(id); // Return the delete operation
+        }
+        throw new IllegalArgumentException("Target node not found: " + targetId);
+    }
+
 
 }
 

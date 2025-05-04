@@ -6,6 +6,21 @@ import lombok.*;
 @Setter
 @AllArgsConstructor
 public class SessionInfo {
+
+
     private String sessionId;
     private String message;
+
+    public SessionInfo(String sessionId, String message) {
+        this.sessionId = sessionId;
+        this.message = message;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public String getMessage() {
+        return message;
+    }
 }

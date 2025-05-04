@@ -16,4 +16,8 @@ public class User {
         this.username = username;
         this.WebSocketSessionID = webSocketSessionID;
     }
+
+    public String getUsername()
+    { return username;
+    }
 }

@@ -1,5 +1,7 @@
 package com.APTproject.CollabTextEditing.editor;
 
+import CRDT.CRDT_Document;
+import CRDT.Remote_Operation;
 import com.APTproject.CollabTextEditing.model.*;
 import com.APTproject.CollabTextEditing.service.SessionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,10 +51,38 @@ public class EditorController {
 
 
 
+//    @MessageMapping("/session/edit/{sessionId}")
+//    public void editMessage(@Payload EditMessage edit,
+//                            @DestinationVariable String sessionId) {
+//        System.out.println("✍️ Edit received from user " + edit.getUserId() + ": " + edit.getCharValue());
+//        messagingTemplate.convertAndSend("/topic/session/" + sessionId, edit);
+//    }
+
+
+    /// /////////////////rozz///////////////////////////
     @MessageMapping("/session/edit/{sessionId}")
-    public void editMessage(@Payload EditMessage edit,
-                            @DestinationVariable String sessionId) {
+    public void editMessage(@Payload EditMessage edit, @DestinationVariable String sessionId) {
         System.out.println("✍️ Edit received from user " + edit.getUserId() + ": " + edit.getCharValue());
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId, edit);
+
+        // Get the session and CRDT document
+        CollabSession session = sessionService.getSession(sessionId);
+        CRDT_Document document = session.getCrdt();
+
+        // Determine the type of operation (Insert/Delete)
+        Remote_Operation operation;
+        if (edit.getOperationType() == OperationTypes.OperationType.INSERT) {
+            operation = document.createInsertOperation(edit.getPosition(), edit.getCharValue());
+        } else if (edit.getOperationType() == OperationTypes.OperationType.DELETE) {
+            operation = document.createDeleteOperation(edit.getTargetId());
+        } else {
+            System.err.println("❌ Unsupported operation type: " + edit.getOperationType());
+            return;
+        }
+
+        // Apply the operation to the CRDT document
+        document.applyRemoteOperation(operation);
+
+        // Broadcast the operation to all clients in the session
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, operation.toJSON());
     }
 }
