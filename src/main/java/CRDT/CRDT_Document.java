@@ -790,42 +790,44 @@ public void printIdentifiers() {
 //        System.out.println("Remote Insert Successful: Node '" + c + "' inserted after prevId: " + prevId);
 //    }
     public void remoteInsert(Identifier prevId, Identifier newId, char value) {
-    System.out.println("\n=== Debugging Remote Insert ===");
+        if (index.containsKey(newId))
+        {
+            System.out.println("Remote Insert Skipped: Duplicate Identifier " + newId);
+            return;
+        }
 
-    // Check if the identifier already exists
-    if (index.containsKey(newId)) {
-        System.out.println("Remote Insert Skipped: Duplicate Identifier " + newId);
-        return;
+        CRDT_Node prevNode = index.get(prevId);
+        if (prevNode == null) {
+            System.out.println("Remote Insert Failed: prevId not found. Falling back to head.");
+            prevNode = head;
+        }
+
+        // Create the new node
+        CRDT_Node newNode = new CRDT_Node(value, newId);
+
+        // Get the list of children after prevNode
+        List<CRDT_Node> nextList = prevNode.getNext();
+
+        // Find correct position in nextList by ID
+        int insertIndex = 0;
+        while (insertIndex < nextList.size() &&
+                newId.compareTo(nextList.get(insertIndex).getId()) > 0) {
+            insertIndex++;
+        }
+
+        // Insert at the calculated position
+        nextList.add(insertIndex, newNode);
+        newNode.setParent(prevNode);
+
+        // Update map
+        index.put(newId, newNode);
+        //  reassignIdentifiers(); // Optional: maintain consistent order after remote insert
+
+        System.out.println("Remote Insert Successful: '" + value + "' inserted after " + prevId);
     }
 
-    // Retrieve the previous node using the index map
-    CRDT_Node prevNode = index.get(prevId);
-    if (prevNode == null) {
-        System.err.println("Remote Insert Failed: prevId not found. Skipping operation.");
-        return; // Safely exit if the previous node is not found
-    }
-    System.out.println("Found prevNode: " + prevNode.getValue() + " with Identifier: " + prevId);
 
-    // Create the new node
-    CRDT_Node newNode = new CRDT_Node(value, newId);
-    System.out.println("Created newNode: " + newNode.getValue() + " with Identifier: " + newId);
 
-    // Add the new node to the next list of the previous node
-    prevNode.getNext().add(newNode);
-    newNode.setParent(prevNode);
-    System.out.println("Added newNode to prevNode's next list.");
-
-    // Sort the parent's next list to maintain CRDT order
-    prevNode.getNext().sort((a, b) -> a.getId().compareTo(b.getId()));
-    System.out.println("Sorted prevNode's next list.");
-
-    // Add the new node to the index for fast lookup
-    index.put(newId, newNode);
-    System.out.println("Added newNode to index with Identifier: " + newId);
-
-    // Log success
-    System.out.println("Remote Insert Successful: '" + value + "' inserted after " + prevId);
-}
     public Identifier localInsert(int position, char c) {
         CRDT_Node target = find_by_visiblePosition(position); // Find the node at the exact position
         CRDT_Node prev = (target == null) ? head : target.getParent(); // Find the parent of the target node
