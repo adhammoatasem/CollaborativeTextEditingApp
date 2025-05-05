@@ -1,7 +1,7 @@
 package CRDT;
 
 import com.APTproject.CollabTextEditing.model.EditMessage;
-import com.APTproject.CollabTextEditing.model.OperationType;
+import com.APTproject.CollabTextEditing.model.OperationTypes;
 import com.google.gson.Gson;
 
 public class Remote_Operation {
@@ -56,12 +56,12 @@ public class Remote_Operation {
      * @return A Remote_Operation object.
      */
     public static Remote_Operation fromEditMessage(EditMessage editMessage, CRDT_Document crdtDocument) {
-        if (editMessage.getOperationType() == OperationType.INSERT) {
+        if (editMessage.getOperationType() == OperationTypes.OperationType.INSERT) {
             // Create INSERT operation
-            Identifier prevId = crdtDocument.find_by_visiblePosition(editMessage.getPosition() - 1);
-            Identifier newId = crdtDocument.nextId();
-            return new Remote_Operation(prevId, newId, editMessage.getCharValue().charAt(0));
-        } else if (editMessage.getOperationType() == OperationType.DELETE) {
+            Identifier prevId = crdtDocument.find_by_visiblePosition(editMessage.getPosition() - 1).getId();
+            Identifier newId = new Identifier(crdtDocument.getUserid(),crdtDocument.getDocCounter()+1); ;
+            return new Remote_Operation(prevId, newId, editMessage.getCharValue());
+        } else if (editMessage.getOperationType() == OperationTypes.OperationType.DELETE) {
             // Create DELETE operation
             Identifier targetId = Identifier.fromString(editMessage.getTargetId());
             return new Remote_Operation(targetId);

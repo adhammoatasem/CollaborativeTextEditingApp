@@ -5,7 +5,7 @@ public class Identifier implements Comparable<Identifier>
 {
 
   private final String userID;
-  private final long counter;
+  private  long counter;
 
     public Identifier(String userID, long counter) {
         this.userID = userID;
@@ -70,4 +70,7 @@ public class Identifier implements Comparable<Identifier>
         return new Identifier(userID, counter);
     }
 
+    public void setCounter(int i)
+    {   counter =i;
+    }
 }

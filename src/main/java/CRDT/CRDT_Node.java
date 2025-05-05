@@ -2,7 +2,15 @@ package CRDT;
 import java.util.ArrayList;
 import java.util.List;
 public class CRDT_Node {
+/// //////////////////////for comments////////////////////////
+private final List<Comment> comments = new ArrayList<>();
 
+    public List<Comment> getComments() { return comments; }
+
+    public void addComment(Comment comment) {
+        comments.add(comment);
+    }
+/// ////////////////////////////////////////
     private final char value;
 
     public void setId(Identifier id) {
@@ -37,10 +45,11 @@ public class CRDT_Node {
         return deleted;
     }
 
+
     public void delete() {
         deleted = true;
+        comments.clear(); // Clear comments when text is deleted
     }
-
     /// flagging it as a deleted element
 
     public void undelete() {
