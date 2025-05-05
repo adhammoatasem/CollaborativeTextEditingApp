@@ -60,12 +60,12 @@ public class EditorController {
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, edit);
     }*/
 
-    @MessageMapping("/session/edit/{sessionId}")
-    public void editMessage(@Payload EditMessage edit, @DestinationVariable String sessionId) {
+    @MessageMapping("/session/{sessionCode}/edit")
+    public void editMessage(@Payload EditMessage edit, @DestinationVariable String sessionCode) {
         System.out.println("✍️ Edit received from user " + edit.getUserId() + ": " + edit.getCharValue());
 
         // Get the session and CRDT document
-        CollabSession session = sessionService.getSession(sessionId);
+        CollabSession session = sessionService.getSession(sessionCode);
         CRDT_Document document = session.getDoc();
 
         // Determine the type of operation (Insert/Delete)
@@ -83,7 +83,7 @@ public class EditorController {
         document.applyRemoteOperation(operation);
 
         // Broadcast the operation to all clients in the session
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId, operation.toJSON());
+        messagingTemplate.convertAndSend("/topic/session/" + sessionCode, operation.toJSON());
     }
 
     /*@MessageMapping("/session/requestDoc/{sessionId}")
@@ -95,4 +95,10 @@ public class EditorController {
         // Send the latest document content back to the same session topic
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, new DocumentContentMessage(currentContent));
     }*/
+    @MessageMapping("/session/{sessionId}/state")
+    @SendToUser("/queue/session-state")
+    public String getDocumentState(@DestinationVariable String sessionId) {
+        CollabSession session = sessionService.getSession(sessionId);
+        return session.getDoc().toString();
+    }
 }

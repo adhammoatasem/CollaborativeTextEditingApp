@@ -27,13 +27,6 @@ public class CRDT_Document
     }
 
 
-    //        public CRDT_Document(String user)
-//        {
-//            this.Userid = user;
-//            this.head = new CRDT_Node('\0', new Identifier(user, -1)); // Dummy head
-//            index.put(head.getId(), head);
-//        }
-//
     public CRDT_Document() {
         this.Userid = "default_user"; // Default user ID
         this.head = new CRDT_Node('\0', new Identifier(Userid, -1)); // Dummy head
@@ -93,38 +86,8 @@ public class CRDT_Document
             traverseAndReassign(child); // Recursively process child nodes
         }
     }
-    public Identifier localInsert(int position, char c) {
-        CRDT_Node target = find_by_visiblePosition(position); // Find the node at the exact position
-        CRDT_Node prev = (target == null) ? head : target.getParent(); // Find the parent of the target node
-        Identifier newId = nextId(); // Generate a unique ID
-        CRDT_Node node = new CRDT_Node(c, newId); // Create the new node
 
-        addNodeBefore(prev, target, node); // Add the new node before the target node
 
-        // Push the operation to the undo stack
-        pushToUndoStack(new Operation(Operation.Type.INSERT, node, position));
-        redoStack.clear(); // Clear redo stack after a new operation
-
-        reassignIdentifiers(); ///for sorting identifiers
-
-        return newId; // Return the new ID
-    }
-    //    private void addNodeBefore(CRDT_Node parent, CRDT_Node target, CRDT_Node newNode) {
-//        List<CRDT_Node> targetList = (parent == null) ? head.getNext() : parent.getNext(); // Get the parent's children list
-//
-//        // Find the index of the target node in the children list
-//        int index = targetList.indexOf(target);
-//
-//        // Add the new node at the calculated index (before the target node)
-//        if (index == -1) {
-//            targetList.add(newNode); // If the target is not found, add to the end of the list
-//        } else {
-//            targetList.add(index, newNode); // Insert before the target node
-//        }
-//
-//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort nodes by ID to maintain CRDT order
-//        this.index.put(newNode.getId(), newNode); // Add to the index for fast lookup
-//    }
     private void addNodeBefore(CRDT_Node parent, CRDT_Node target, CRDT_Node newNode) {
         // Get the parent's children list
         List<CRDT_Node> targetList = (parent == null) ? head.getNext() : parent.getNext();
@@ -146,72 +109,36 @@ public class CRDT_Document
         this.index.put(newNode.getId(), newNode); // Add to the index for fast lookup
     }
     /// see later
-//    private Identifier insertAtBeginning(char c) {
-//        Identifier newId = nextId();
-//        CRDT_Node node = new CRDT_Node(c, newId);
-//
-//        // Insert the node at the beginning (as the first element in the list)
-//        List<CRDT_Node> targetList = visibleNodes; // Assuming visibleNodes is the top-level list
-//        targetList.add(0, node);  // Insert at index 0 to make it the first node
-//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort nodes by their ID
-//
-//        // Add the node to the index
-//        index.put(newId, node);
-//
-//        // Push the operation to undo stack and clear redo stack
-//        pushToUndoStack(new Operation(Operation.Type.INSERT, node, 0));
-//        redoStack.clear();
-//
-//        return newId;
-//    }
-
-//    public Identifier localInsert(int position, char c) {
-//        if (position == 0) {
-//            return insertAtBeginning(c); // Insert at the beginning
-//        }
-//
-//        // Proceed with the regular insertion logic when the position is not 0
-//        CRDT_Node prev = find_by_visiblePosition(position - 1);
-//        Identifier newId = nextId();
-//        CRDT_Node node = new CRDT_Node(c, newId);
-//
-//        // Insert the node based on `prev`
-//        addNode(prev, node);
-//
-//        // Push the operation to undo stack and clear redo stack
-//        pushToUndoStack(new Operation(Operation.Type.INSERT, node, position));
-//        redoStack.clear();
-//
-//        return newId;
-//    }
-
 
 
 
     /// for remote users /////////////////to test
-    public void remoteInsert(Identifier prevId, Identifier newId, char c) {
-        // Retrieve the previous node using the index map
-        CRDT_Node prev = index.get(prevId);
 
-        // Handle the case where the previous node is not found
-        if (prev == null) {
-            System.err.println("Remote Insert Failed: prevId not found in index. Message might be out of order.");
-            return; // Safely exit if the previous node is not found
-        }
 
-        // Create the new node using the received ID and character
-        CRDT_Node node = new CRDT_Node(c, newId);
 
-        // Determine the parent and target node
-        CRDT_Node parent = prev.getParent();
-        CRDT_Node target = prev.getNext().isEmpty() ? null : prev.getNext().get(0);
-
-        // Add the new node before the target node
-        addNodeBefore(parent, target, node);
-
-        // Optionally log the successful insertion
-        System.out.println("Remote Insert Successful: Node '" + c + "' inserted after prevId: " + prevId);
-    }// called by network when receiving char from remote user
+//    public void remoteInsert(Identifier prevId, Identifier newId, char c) {
+//        // Retrieve the previous node using the index map
+//        CRDT_Node prev = index.get(prevId);
+//
+//        // Handle the case where the previous node is not found
+//        if (prev == null) {
+//            System.err.println("Remote Insert Failed: prevId not found in index. Message might be out of order.");
+//            return; // Safely exit if the previous node is not found
+//        }
+//
+//        // Create the new node using the received ID and character
+//        CRDT_Node node = new CRDT_Node(c, newId);
+//
+//        // Determine the parent and target node
+//        CRDT_Node parent = prev.getParent();
+//        CRDT_Node target = prev.getNext().isEmpty() ? null : prev.getNext().get(0);
+//
+//        // Add the new node before the target node
+//        addNodeBefore(parent, target, node);
+//
+//        // Optionally log the successful insertion
+//        System.out.println("Remote Insert Successful: Node '" + c + "' inserted after prevId: " + prevId);
+//    }// called by network when receiving char from remote user
     /// ///////////////locallll///////////////////////
     public void delete(Identifier id)
     {
@@ -222,48 +149,11 @@ public class CRDT_Document
         redoStack.clear();
     }
 /// //////////////////////////////////////////////////////////////////////////////////
-//        private void addNode(CRDT_Node prev, CRDT_Node node)
-//        {
-//            prev.insertNext(node);
-//            index.put(node.getId(), node); //for map->hashmap
-//        }
+
     /////////////////////////////fih add node tanya fo2iha ///////////////////////////////////////////////////////
-//    private void addNode(CRDT_Node prev, CRDT_Node node)
-//    {
-//        // 1) Insert into prev’s children list
-//        List<CRDT_Node> children = prev.getNext();
-//        children.add(node);
-//
-//        // 2) Sort by Identifier so concurrent inserts line up
-//        children.sort(Comparator.comparing(CRDT_Node::getId));
-//
-//        // 3) Index it
-//        index.put(node.getId(), node);
-//    }
-//    private void addNode(CRDT_Node prev, CRDT_Node node) {
-//        List<CRDT_Node> targetList;
-//
-//        if (prev == null) {
-//            // If prev is null, add to the head node (root's children)
-//            targetList = head.getNext();
-//        } else {
-//            targetList = prev.getNext();
-//        }
-//
-//        // Add and sort
-//        targetList.add(node);
-//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort by ID to keep correct CRDT order
-//
-//        // Add to index
-//        index.put(node.getId(), node);
-//    }
+
     /// ////////////////////////////////////////////////////////// copilot add node
-//    private void addNode(CRDT_Node prev, CRDT_Node node) {
-//        List<CRDT_Node> targetList = (prev == null) ? head.getNext() : prev.getNext();
-//        targetList.add(node); // Add the new node to the list
-//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort by ID to maintain CRDT order
-//        index.put(node.getId(), node); // Add to the index for fast lookup
-//    }
+
     private void addNode(CRDT_Node prev, CRDT_Node node) // ely feha sorting lnext
     {
         List<CRDT_Node> targetList = (prev == null) ? head.getNext() : prev.getNext();
@@ -642,7 +532,7 @@ public class CRDT_Document
         return find_by_recursion(head, pos, count);
     }
 
-    private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count) {
+    public CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count) {
         for (CRDT_Node nxtnode : node.getNext()) {
             if (!nxtnode.isDeleted()) {
                 count[0]++;
@@ -710,6 +600,115 @@ public class CRDT_Document
             traverseAndPrint(child); // Recursively go through the tree
         }
     }
+    /////////////////////////////////////////////////////////////////////////
+//    public void remoteInsert(Identifier prevId, Identifier newId, char c) {
+//        // Retrieve the previous node using the index map
+//        CRDT_Node prev = index.get(prevId);
+//
+//        // Handle the case where the previous node is not found
+//        if (prev == null) {
+//            System.err.println("Remote Insert Failed: prevId not found in index. Message might be out of order.");
+//            return; // Safely exit if the previous node is not found
+//        }
+//
+//        // Determine the target position for insertion based on prevId
+//        int position = getVisualPosition(prev.getId()) + 1;
+//
+//        // Use the localInsert logic, but override the newId and bypass undo/redo stack management
+//        CRDT_Node target = find_by_visiblePosition(position); // Find the node at the target position
+//        CRDT_Node parent = (target == null) ? head : target.getParent(); // Find the parent node
+//        CRDT_Node node = new CRDT_Node(c, newId); // Create the new node with the provided remote ID
+//
+//        addNodeBefore(parent, target, node); // Add the new node before the target position
+//
+//        // Reassign identifiers for consistency
+//        reassignIdentifiers();
+//
+//        // Log the successful insertion
+//        System.out.println("Remote Insert Successful: Node '" + c + "' inserted after prevId: " + prevId);
+//    }
+//    public void remoteInsert(Identifier prevId, Identifier newId, char c) {
+//        // Retrieve the previous node using the index map
+//        CRDT_Node prev = index.get(prevId);
+//
+//        // Handle the case where the previous node is not found
+//        if (prev == null) {
+//            System.err.println("Remote Insert Failed: prevId not found in index. Using head node as fallback.");
+//            prev = head; // Fallback to the head node if prevId is not found
+//        }
+//
+//        // Determine the target position for insertion based on prevId
+//        int position = getVisualPosition(prev.getId()) + 1;
+//
+//        // Find the target node and parent node
+//        CRDT_Node target = find_by_visiblePosition(position); // Find the node at the target position
+//        CRDT_Node parent = (target == null) ? head : target.getParent(); // Find the parent node
+//
+//        // Create the new node using the received ID and character
+//        CRDT_Node node = new CRDT_Node(c, newId);
+//
+//        // Add the new node before the target node
+//        addNodeBefore(parent, target, node);
+//
+//        // Reassign identifiers for consistency
+//        reassignIdentifiers();
+//
+//        // Optionally log the successful insertion
+//        System.out.println("Remote Insert Successful: Node '" + c + "' inserted after prevId: " + prevId);
+//    }
+
+    public void remoteInsert(Identifier prevId, Identifier newId, char c) {
+        // Retrieve the previous node using the index map
+        CRDT_Node prev = index.get(prevId);
+
+        // Handle the case where the previous node is not found
+        if (prev == null) {
+            System.err.println("Remote Insert Failed: prevId not found in index. Using head node as fallback.");
+            prev = head; // Fallback to the head node if prevId is not found
+        }
+
+        // Special case: Ensure the first ID starts from 0 if it's -1
+        if (prev.getId().getCounter() == -1) {
+            prev.getId().setCounter(0); // Adjust the counter to start from 0
+            index.put(prev.getId(), prev); // Update the index with the adjusted ID
+        }
+
+        // Determine the target position for insertion based on prevId
+        int position = getVisualPosition(prev.getId()) + 1;
+
+        // Find the target node and parent node
+        CRDT_Node target = find_by_visiblePosition(position); // Find the node at the target position
+        CRDT_Node parent = (target == null) ? head : target.getParent(); // Find the parent node
+
+        // Create the new node using the provided ID
+        CRDT_Node node = new CRDT_Node(c, newId);
+
+        // Add the new node before the target node
+        addNodeBefore(parent, target, node);
+
+        // Reassign identifiers for consistency
+        reassignIdentifiers();
+
+        // Optionally log the successful insertion
+        System.out.println("Remote Insert Successful: Node '" + c + "' inserted after prevId: " + prevId);
+    }
+
+    public Identifier localInsert(int position, char c) {
+        CRDT_Node target = find_by_visiblePosition(position); // Find the node at the exact position
+        CRDT_Node prev = (target == null) ? head : target.getParent(); // Find the parent of the target node
+        Identifier newId = nextId(); // Generate a unique ID
+        CRDT_Node node = new CRDT_Node(c, newId); // Create the new node
+
+        addNodeBefore(prev, target, node); // Add the new node before the target node
+
+        // Push the operation to the undo stack
+        pushToUndoStack(new Operation(Operation.Type.INSERT, node, position));
+        redoStack.clear(); // Clear redo stack after a new operation
+
+        reassignIdentifiers(); ///for sorting identifiers
+
+        return newId; // Return the new ID
+    }
     /// ////////////////////////////////////Remote operation class //////////////////////////////////////////
     public void applyRemoteOperation(Remote_Operation op)
     {
@@ -759,5 +758,13 @@ public class CRDT_Document
         throw new IllegalArgumentException("Target node not found: " + targetId);
     }
 
-
+    ////////////////////////fpr comments////////////////////////////////////
+    /*public boolean addCommentToNode(Identifier id, Comment comment) {
+        CRDT_Node node = index.get(id);
+        if (node != null && !node.isDeleted()) {
+            node.addComment(comment);
+            return true;
+        }
+        return false;
+    }*/
 }

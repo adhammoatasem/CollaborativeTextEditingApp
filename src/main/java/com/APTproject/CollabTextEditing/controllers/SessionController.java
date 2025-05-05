@@ -3,6 +3,8 @@ package com.APTproject.CollabTextEditing.controllers;
 import com.APTproject.CollabTextEditing.model.CollabSession;
 import com.APTproject.CollabTextEditing.model.SessionCodes;
 import com.APTproject.CollabTextEditing.service.SessionService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,5 +26,11 @@ public class SessionController {
         System.out.println("editor code: "+session.getSessionCodes().getEditorCode());
         System.out.println("viewer code: "+session.getSessionCodes().getViewerCode());
         return session.getSessionCodes();
+    }
+
+    @GetMapping("/session/{sessionCode}/state")
+    public String getInitialDocumentState(@PathVariable String sessionCode) {
+        CollabSession session = sessionService.getSessionByCode(sessionCode);
+        return session.getDoc().toString(); // Ensure CRDT_Document has a proper toString implementation
     }
 }

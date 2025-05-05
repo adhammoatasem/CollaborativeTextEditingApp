@@ -5,7 +5,7 @@ public class Identifier implements Comparable<Identifier>
 {
 
     private final String userID;
-    private final long counter;
+    private  long counter;
 
     public Identifier(String userID, long counter) {
         this.userID = userID;
@@ -58,7 +58,7 @@ public class Identifier implements Comparable<Identifier>
         return "(" + userID + ", " + counter + ")";
     }
     public static Identifier fromString(String str) {
-        if (str == null || !str.matches("\\(.*?,\\s*\\d+\\)")) {
+        if (str == null || !str.matches("\\(.?,\\s\\d+\\)")) {
             throw new IllegalArgumentException("Invalid Identifier format: " + str);
         }
 
@@ -70,4 +70,6 @@ public class Identifier implements Comparable<Identifier>
         return new Identifier(userID, counter);
     }
 
+    public void setCounter(int i)
+    {   counter =i;}
 }

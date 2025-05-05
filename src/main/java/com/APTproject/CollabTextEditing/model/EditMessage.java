@@ -10,7 +10,6 @@ import lombok.*;
 @Builder
 public class EditMessage {
     private String type; // e.g., "INSERT" or "DELETE"
-    private String action; // e.g., "INSERT_CHAR" or "DELETE_CHAR"
     private char charValue; // The character being inserted or deleted
     private String positionId; // The position identifier in CRDT
     private String sessionId; // The session ID
