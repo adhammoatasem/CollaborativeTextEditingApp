@@ -58,7 +58,7 @@ public class Identifier implements Comparable<Identifier>
         return "(" + userID + ", " + counter + ")";
     }
     public static Identifier fromString(String str) {
-        if (str == null || !str.matches("\\(.?,\\s\\d+\\)")) {
+        if (str == null || !str.matches("\\(.*?,\\s*\\d+\\)")) {
             throw new IllegalArgumentException("Invalid Identifier format: " + str);
         }
 
@@ -71,5 +71,6 @@ public class Identifier implements Comparable<Identifier>
     }
 
     public void setCounter(int i)
-    {   counter =i;}
+    {   counter =i;
+    }
 }

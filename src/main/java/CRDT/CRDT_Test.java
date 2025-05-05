@@ -1,64 +1,103 @@
+//package CRDT;
+
 package CRDT;
 
 public class CRDT_Test {
     public static void main(String[] args) {
         CRDT_Document doc = new CRDT_Document();
-        //Identifier user = new Identifier();
-        System.out.println("=== Insertion Test ===");
-        Identifier id1 =doc.localInsert(0, 'j');
+
+        System.out.println("=== Local Insertion Test ===");
+        // Identifier id0 = doc.localInsert(-1, 'r');
+        Identifier id1 = doc.localInsert(0, 'j');
         Identifier id2 = doc.localInsert(1, 'a');
         Identifier id3 = doc.localInsert(2, 'l');
-//        doc.localInsert(3, 'a');
-//        doc.localInsert(4, 'p');
-//        doc.localInsert(5, 'o');
         System.out.println("Expected: jal");
         System.out.println("Actual  : " + doc.toString());
+//
+        System.out.println("\n=== Remote Insert Test ===");
+        // Simulate a remote insert
+        Identifier remotePrevId = id1; // Insert after 'a'
+        Identifier remoteNewId = new Identifier("remote_user",0 ); // Simulated remote identifier
+        char remoteChar = 'x'; // Character to insert
+        System.out.print("inserting now");
+        // Perform the remote insert
+        doc.remoteInsert(remotePrevId, remoteNewId, remoteChar);
 
+        System.out.println("Expected: jxal");
+        System.out.println("Actual  : " + doc.toString());
 
-        System.out.println("\n=== Last Test ===");
-        doc.localInsert(0, 'm');
-        System.out.println("Expected: mjal");
-        System.out.println("Actual  : " + doc.toString());
-        System.out.println("\n=== Last Test ===");
-        doc.localInsert(6, 'y');
-        System.out.println("Expected: mjal  y");
-        System.out.println("Actual  : " + doc.toString());
+        // Print identifiers for debugging
+        System.out.println("\n=== Identifiers After Remote Insert ===");
         doc.printIdentifiers();
+        /// //////////////////////////////////////////////////////
+//        System.out.println("\n=== Remote Insert Test ===");
+//// Simulate a remote insert at the very beginning
+//        Identifier remotePrevId = doc.getHeadId(); // <- use head's ID
+//        Identifier remoteNewId = new Identifier("remote_user", 0); // Simulated remote identifier
+//        char remoteChar = 'r'; // Character to insert
 
-//        doc.localInsert(1, 'm');
-//        System.out.println("Expected: mmalapo");
-//        System.out.println("Actual  : " + doc.toString());
+// Perform the remote insert
+//        doc.remoteInsert(remotePrevId, remoteNewId, remoteChar);
 //
-//        System.out.println("\n=== File Export Test ===");
-//        String filePath = "test_export.txt";
-//        doc.exportToFile(filePath);
-//        System.out.println("Exported to: " + filePath);
-//
-//        System.out.println("\n=== File Import Test ===");
-//        CRDT_Document importedDoc = new CRDT_Document();
-//        importedDoc.importFromFile(filePath);
-//        System.out.println("Expected: jalapo");
-//        System.out.println("Actual  : " + importedDoc.toString());
-        //
-//        System.out.println("\n=== Deletion Test ===");
-//        System.out.println("Expected: jalapo");
-//        System.out.println("Actual  : " + doc.toString());
-//       doc.delete(id1);
-//        System.out.println("Expected: alapo");
-//        System.out.println("Actual  : " + doc.toString());
-//        System.out.println("\n=== Deletion Test ===");
-//        doc.delete(new Identifier(2); // delete the first 'l'
-//        System.out.println("Expected: Helo");
+//        System.out.println("Expected: rjal");
 //        System.out.println("Actual  : " + doc.toString());
 
-//        System.out.println("\n=== Undo Test ===");
-//        doc.undo(); // should undo delete
-//        System.out.println("Expected: jalapo");
-//        System.out.println("Actual  : " + doc.toString());
-//
-//        System.out.println("\n=== Redo Test ===");
-//        doc.redo(); // should redo delete
-//        System.out.println("Expected: alapo");
-//        System.out.println("Actual  : " + doc.toString());
     }
 }
+//
+//public class CRDT_Test {
+////    public static void main(String[] args) {
+////        CRDT_Document doc = new CRDT_Document();
+////        //Identifier user = new Identifier();
+////        System.out.println("=== Insertion Test ===");
+////        Identifier id1 =doc.localInsert(0, 'j');
+////        Identifier id2 = doc.localInsert(1, 'a');
+////        Identifier id3 = doc.localInsert(2, 'l');
+//////
+////        System.out.println("Expected: jal");
+////        System.out.println("Actual  : " + doc.toString());
+////
+////
+////        System.out.println("\n=== Last Test ===");
+////        doc.localInsert(0, 'm');
+////        System.out.println("Expected: mjal");
+////        System.out.println("Actual  : " + doc.toString());
+////        System.out.println("\n=== Last Test ===");
+////        doc.localInsert(6, 'y');
+////        System.out.println("Expected: mjal  y");
+////        System.out.println("Actual  : " + doc.toString());
+////        doc.printIdentifiers();
+////
+////
+////    }
+//
+//
+//
+//        public static void main(String[] args) {
+//            CRDT_Document doc = new CRDT_Document();
+//
+//            System.out.println("=== Local Insertion Test ===");
+//            Identifier id1 = doc.localInsert(0, 'j');
+//            Identifier id2 = doc.localInsert(1, 'a');
+//            Identifier id3 = doc.localInsert(2, 'l');
+//            System.out.println("Expected: jal");
+//            System.out.println("Actual  : " + doc.toString());
+//
+//            System.out.println("\n=== Remote Insert Test ===");
+//            // Simulate a remote insert
+//            Identifier remotePrevId = id2; // Insert after 'a'
+//            Identifier remoteNewId = new Identifier("remote_user", 1); // Simulated remote identifier
+//            char remoteChar = 'x'; // Character to insert
+//
+//            // Perform the remote insert
+//            doc.remoteInsert(remotePrevId, remoteNewId, remoteChar);
+//
+//            System.out.println("Expected: jaxl");
+//            System.out.println("Actual  : " + doc.toString());
+//
+//            // Print identifiers for debugging
+//            System.out.println("\n=== Identifiers After Remote Insert ===");
+//            doc.printIdentifiers();
+//        }
+//
+//}

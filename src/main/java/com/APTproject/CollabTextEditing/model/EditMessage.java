@@ -1,6 +1,7 @@
 package com.APTproject.CollabTextEditing.model;
 
 
+import CRDT.OperationTypes;
 import lombok.*;
 
 @Getter

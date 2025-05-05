@@ -1,4 +1,4 @@
-package com.APTproject.CollabTextEditing.model;
+package CRDT;
 
 public enum OperationTypes {
     INSERT, // For insert operations
