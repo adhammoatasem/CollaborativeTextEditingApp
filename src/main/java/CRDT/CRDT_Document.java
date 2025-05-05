@@ -5,10 +5,10 @@ import java.util.*;
 public class CRDT_Document
 {
     private final String Userid;
-    private long DocCounter = 0;
+    private long DocCounter = -1;
     private final CRDT_Node head; // the first node dummy lowkey
     private final Map<Identifier, CRDT_Node> index = new HashMap<>();
-
+    // private List<CRDT_Node> visibleNodes = new ArrayList<>(); ///see later
     /// /////////////////////////////////for redo and undo/////////////////////////////////////////////////////
     //using deque ashan a_edit front aw end
 
@@ -17,7 +17,7 @@ public class CRDT_Document
     // Stack to store undone operations for redo
     private final Deque<Operation> redoStack = new ArrayDeque<>();
 
- /////////////////////////////////// getters w setters//////////////////////////////////////////
+    /////////////////////////////////// getters w setters//////////////////////////////////////////
     public String getUserid() {
         return Userid;
     }
@@ -27,135 +27,341 @@ public class CRDT_Document
     }
 
 
-        public CRDT_Document(String user)
-        {
-            this.Userid = user;
-            this.head = new CRDT_Node('\0', new Identifier(user, -1)); // Dummy head
-            index.put(head.getId(), head);
-        }
+    //        public CRDT_Document(String user)
+//        {
+//            this.Userid = user;
+//            this.head = new CRDT_Node('\0', new Identifier(user, -1)); // Dummy head
+//            index.put(head.getId(), head);
+//        }
+//
+    public CRDT_Document() {
+        this.Userid = "default_user"; // Default user ID
+        this.head = new CRDT_Node('\0', new Identifier(Userid, -1)); // Dummy head
+        index.put(head.getId(), head);
+    }
 
-        private Identifier nextId()
-        {
-            return new Identifier(Userid, DocCounter++); //userA rozana r->(userA,1), o->(userA,2)
-        }
+    private Identifier nextId()
+    {
+        return new Identifier(Userid, DocCounter++); //userA rozana r->(userA,0), o->(userA,1)
+    }
     /// /////////////////////////////////////////////////////////////////////////////////////////////
     /// //////////////////////////continue from heree 20/4/2025/////////////////////////////////////////
 
-        public Identifier localInsert(int position, char c)
-        {
-            CRDT_Node prev = find_by_visiblePosition(position - 1); //get prev index
-            Identifier newId = nextId(); //get new unique id
-            CRDT_Node node = new CRDT_Node(c, newId); //create node with the new id and the value
-            addNode(prev, node); // add it and update the hashmap
-            /// ///////////////redo and undo////////////////////
-            // Push this operation to undo stack and clear redo stack
-            pushToUndoStack(new Operation(Operation.Type.INSERT, node, position)); // push el op flstack
-            redoStack.clear(); // once ma new op btegy elredo byrestart
-            /////////////////////////////////////////////////////
-            return newId; // return the new id so that remote users can use it
+//        public Identifier localInsert(int position, char c) // main bae
+//        {
+//            CRDT_Node prev = find_by_visiblePosition(position-1); //get prev index //shelna -1
+//            long count;
+//            count =prev.getId().getCounter()+1;
+//            Identifier newId = new Identifier(getUserid(),count); //get new unique id
+    ////            System.out.println("the prev ID  : " + prev.getId().toString());
+    ////           System.out.println("the new ID  : " + newId.toString());
+//
+//            CRDT_Node node = new CRDT_Node(c, newId); //create node with the new id and the value
+//            System.out.println("the prev node  : "+ prev.getValue()+ "  ID " + prev.getId().toString());
+//            System.out.println("the new node   : " + prev.getValue()+ "  ID " + node.getId().toString());
+//
+//            addNode(prev, node); // add it and update the hashmap
+//            /// ///////////////redo and undo////////////////////
+//            // Push this operation to undo stack and clear redo stack
+//            pushToUndoStack(new Operation(Operation.Type.INSERT, node, position)); // push el op flstack
+//            redoStack.clear(); // once ma new op btegy elredo byrestart
+//            /////////////////////////////////////////////////////
+//            return newId; // return the new id so that remote users can use it
+//        }
+
+    public void reassignIdentifiers() {
+        // Reset the counter for the document
+        DocCounter = 0;
+
+        // Traverse the document and reassign identifiers
+        traverseAndReassign(head);
+
+        // Optionally, print updated identifiers for debugging
+        System.out.println("=== Identifiers After Reassignment ===");
+        printIdentifiers();
+    }
+
+    private void traverseAndReassign(CRDT_Node node) {
+        for (CRDT_Node child : node.getNext()) {
+            if (!child.isDeleted()) {
+                // Assign a new identifier to the node
+                Identifier newId = new Identifier(Userid, DocCounter++);
+                index.remove(child.getId()); // Remove old identifier from the index
+                child.setId(newId); // Update the identifier
+                index.put(newId, child); // Add the new identifier to the index
+            }
+            traverseAndReassign(child); // Recursively process child nodes
+        }
+    }
+    public Identifier localInsert(int position, char c) {
+        CRDT_Node target = find_by_visiblePosition(position); // Find the node at the exact position
+        CRDT_Node prev = (target == null) ? head : target.getParent(); // Find the parent of the target node
+        Identifier newId = nextId(); // Generate a unique ID
+        CRDT_Node node = new CRDT_Node(c, newId); // Create the new node
+
+        addNodeBefore(prev, target, node); // Add the new node before the target node
+
+        // Push the operation to the undo stack
+        pushToUndoStack(new Operation(Operation.Type.INSERT, node, position));
+        redoStack.clear(); // Clear redo stack after a new operation
+
+        reassignIdentifiers(); ///for sorting identifiers
+
+        return newId; // Return the new ID
+    }
+    //    private void addNodeBefore(CRDT_Node parent, CRDT_Node target, CRDT_Node newNode) {
+//        List<CRDT_Node> targetList = (parent == null) ? head.getNext() : parent.getNext(); // Get the parent's children list
+//
+//        // Find the index of the target node in the children list
+//        int index = targetList.indexOf(target);
+//
+//        // Add the new node at the calculated index (before the target node)
+//        if (index == -1) {
+//            targetList.add(newNode); // If the target is not found, add to the end of the list
+//        } else {
+//            targetList.add(index, newNode); // Insert before the target node
+//        }
+//
+//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort nodes by ID to maintain CRDT order
+//        this.index.put(newNode.getId(), newNode); // Add to the index for fast lookup
+//    }
+    private void addNodeBefore(CRDT_Node parent, CRDT_Node target, CRDT_Node newNode) {
+        // Get the parent's children list
+        List<CRDT_Node> targetList = (parent == null) ? head.getNext() : parent.getNext();
+
+        // Set the parent of the new node
+        newNode.setParent(parent == null ? head : parent);
+
+        // Find the index of the target node in the children list
+        int index = targetList.indexOf(target);
+
+        // Add the new node at the calculated index (before the target node)
+        if (index == -1) {
+            targetList.add(newNode); // If the target is not found, add to the end of the list
+        } else {
+            targetList.add(index, newNode); // Insert before the target node
         }
 
+        // No sorting is necessary here because we're inserting at the correct index
+        this.index.put(newNode.getId(), newNode); // Add to the index for fast lookup
+    }
+    /// see later
+//    private Identifier insertAtBeginning(char c) {
+//        Identifier newId = nextId();
+//        CRDT_Node node = new CRDT_Node(c, newId);
+//
+//        // Insert the node at the beginning (as the first element in the list)
+//        List<CRDT_Node> targetList = visibleNodes; // Assuming visibleNodes is the top-level list
+//        targetList.add(0, node);  // Insert at index 0 to make it the first node
+//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort nodes by their ID
+//
+//        // Add the node to the index
+//        index.put(newId, node);
+//
+//        // Push the operation to undo stack and clear redo stack
+//        pushToUndoStack(new Operation(Operation.Type.INSERT, node, 0));
+//        redoStack.clear();
+//
+//        return newId;
+//    }
 
-    /// for remote users
+//    public Identifier localInsert(int position, char c) {
+//        if (position == 0) {
+//            return insertAtBeginning(c); // Insert at the beginning
+//        }
+//
+//        // Proceed with the regular insertion logic when the position is not 0
+//        CRDT_Node prev = find_by_visiblePosition(position - 1);
+//        Identifier newId = nextId();
+//        CRDT_Node node = new CRDT_Node(c, newId);
+//
+//        // Insert the node based on `prev`
+//        addNode(prev, node);
+//
+//        // Push the operation to undo stack and clear redo stack
+//        pushToUndoStack(new Operation(Operation.Type.INSERT, node, position));
+//        redoStack.clear();
+//
+//        return newId;
+//    }
 
-        public void remoteInsert(Identifier prevId, Identifier newId, char c)
-        { //newid howa ely tale3 mn local insert 3nd ellaptop eltany
-            CRDT_Node prev = index.get(prevId);
-            if (prev == null)
-            {return;} //for safety in case the message arrived out of order
-            CRDT_Node node = new CRDT_Node(c, newId); //id received from remote user
-            addNode(prev, node);
-        } // called by network when receiving char from remote user
-/// ///////////////locallll///////////////////////
-        public void delete(Identifier id)
-        {
-            CRDT_Node node = index.get(id);
-            if (node != null)
-            {node.delete();}
-            pushToUndoStack(new Operation(Operation.Type.DELETE, node, -1));
-            redoStack.clear();
+
+
+
+    /// for remote users /////////////////to test
+    public void remoteInsert(Identifier prevId, Identifier newId, char c) {
+        // Retrieve the previous node using the index map
+        CRDT_Node prev = index.get(prevId);
+
+        // Handle the case where the previous node is not found
+        if (prev == null) {
+            System.err.println("Remote Insert Failed: prevId not found in index. Message might be out of order.");
+            return; // Safely exit if the previous node is not found
         }
+
+        // Create the new node using the received ID and character
+        CRDT_Node node = new CRDT_Node(c, newId);
+
+        // Determine the parent and target node
+        CRDT_Node parent = prev.getParent();
+        CRDT_Node target = prev.getNext().isEmpty() ? null : prev.getNext().get(0);
+
+        // Add the new node before the target node
+        addNodeBefore(parent, target, node);
+
+        // Optionally log the successful insertion
+        System.out.println("Remote Insert Successful: Node '" + c + "' inserted after prevId: " + prevId);
+    }// called by network when receiving char from remote user
+    /// ///////////////locallll///////////////////////
+    public void delete(Identifier id)
+    {
+        CRDT_Node node = index.get(id);
+        if (node != null)
+        {node.delete();}
+        pushToUndoStack(new Operation(Operation.Type.DELETE, node, -1));
+        redoStack.clear();
+    }
 /// //////////////////////////////////////////////////////////////////////////////////
 //        private void addNode(CRDT_Node prev, CRDT_Node node)
 //        {
 //            prev.insertNext(node);
 //            index.put(node.getId(), node); //for map->hashmap
 //        }
-        ///////////////////////////////fih add node tanya fo2iha ///////////////////////////////////////////////////////
-    private void addNode(CRDT_Node prev, CRDT_Node node)
+    /////////////////////////////fih add node tanya fo2iha ///////////////////////////////////////////////////////
+//    private void addNode(CRDT_Node prev, CRDT_Node node)
+//    {
+//        // 1) Insert into prev’s children list
+//        List<CRDT_Node> children = prev.getNext();
+//        children.add(node);
+//
+//        // 2) Sort by Identifier so concurrent inserts line up
+//        children.sort(Comparator.comparing(CRDT_Node::getId));
+//
+//        // 3) Index it
+//        index.put(node.getId(), node);
+//    }
+//    private void addNode(CRDT_Node prev, CRDT_Node node) {
+//        List<CRDT_Node> targetList;
+//
+//        if (prev == null) {
+//            // If prev is null, add to the head node (root's children)
+//            targetList = head.getNext();
+//        } else {
+//            targetList = prev.getNext();
+//        }
+//
+//        // Add and sort
+//        targetList.add(node);
+//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort by ID to keep correct CRDT order
+//
+//        // Add to index
+//        index.put(node.getId(), node);
+//    }
+    /// ////////////////////////////////////////////////////////// copilot add node
+//    private void addNode(CRDT_Node prev, CRDT_Node node) {
+//        List<CRDT_Node> targetList = (prev == null) ? head.getNext() : prev.getNext();
+//        targetList.add(node); // Add the new node to the list
+//        targetList.sort(Comparator.comparing(CRDT_Node::getId)); // Sort by ID to maintain CRDT order
+//        index.put(node.getId(), node); // Add to the index for fast lookup
+//    }
+    private void addNode(CRDT_Node prev, CRDT_Node node) // ely feha sorting lnext
     {
-        // 1) Insert into prev’s children list
-        List<CRDT_Node> children = prev.getNext();
-        children.add(node);
-
-        // 2) Sort by Identifier so concurrent inserts line up
-        children.sort(Comparator.comparing(CRDT_Node::getId));
-
-        // 3) Index it
-        index.put(node.getId(), node);
+        List<CRDT_Node> targetList = (prev == null) ? head.getNext() : prev.getNext();
+        targetList.add(node); // Add the new node to the list
+        node.setParent(prev == null ? head : prev); // Set the parent of the new node
+        targetList.sort((a, b) -> a.getId().compareTo(b.getId())); // Sort nodes by ID to maintain CRDT order
+        index.put(node.getId(), node); // Add to the index for fast lookup
     }
-        /////////////////////////////////dont forget missing functionalities/////////////////////////////////////////////////////
 
-        public String toPlainText()
-        {
-            StringBuilder sb = new StringBuilder();
-            traverse(head, sb); // traverse the whole tree to append the text to the string builder then turning it to a string
-            return sb.toString(); //while ignoring deleted nodes
-        }
+////        private void addNode(CRDT_Node prev, CRDT_Node node) {
+////            List<CRDT_Node> targetList;
+////
+//            if (prev == null) {
+//                // If prev is null, insert at the beginning (not the end of the document)
+//                targetList = visibleNodes; // This should be your top-level list of nodes
+//                // Make sure to insert at the start if it's the first node
+//                targetList.add(0, node);  // Insert at the beginning
+//            } else {
+//                // Otherwise, insert after prev in its next list
+//                targetList = prev.getNext();
+//                targetList.add(node);  // Insert after the previous node
+//            }
+//
+//            // Sort the list by the node's ID (keeping order of insertion and versioning)
+//            targetList.sort(Comparator.comparing(CRDT_Node::getId));
+//
+//            // Add the new node to the index for lookup by its identifier
+//            index.put(node.getId(), node);
+//        }
+
+    /////////////////////////////////dont forget missing functionalities/////////////////////////////////////////////////////
+
+    public String toPlainText()
+    {
+        StringBuilder sb = new StringBuilder();
+        traverse(head, sb); // traverse the whole tree to append the text to the string builder then turning it to a string
+        return sb.toString(); //while ignoring deleted nodes
+    }
+    @Override
+    public String toString()
+    {
+        // Use the existing toPlainText method to get the document content
+        return toPlainText();
+    }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// helper functionss//////////////////////////////////////////
-        private void traverse(CRDT_Node node, StringBuilder sb)
-        {
-            for (CRDT_Node nxt : node.getNext())  //hanmsek kol node w n3ady ala children depth first then elforloop ensures law andy kaza child ha3ady alehom bardo
-            {
-                if (!nxt.isDeleted()) sb.append(nxt.getValue()); // law mesh deleted hayhotaha gher keda ignore
-                traverse(nxt, sb); //call it again for next child
-            }
-        }
+//        private void traverse(CRDT_Node node, StringBuilder sb)
+//        {
+//            for (CRDT_Node nxt : node.getNext())  //hanmsek kol node w n3ady ala children depth first then elforloop ensures law andy kaza child ha3ady alehom bardo
+//            {
+//                if (!nxt.isDeleted()) sb.append(nxt.getValue()); // law mesh deleted hayhotaha gher keda ignore
+//                traverse(nxt, sb); //call it again for next child
+//            }
+//        }
 
-        private CRDT_Node find_by_visiblePosition(int pos)
-        {
-            final int[] count = {-1}; //for head //array for recursion instead of normal int //for java ig
-            return find_by_recursion(head, pos, count);
-        }
+//        private CRDT_Node find_by_visiblePosition(int pos)
+//        {
+//            final int[] count = {-1}; //for head //array for recursion instead of normal int //for java ig
+//            return find_by_recursion(head, pos, count);
+//        }
 
-        private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count) {
-            for (CRDT_Node nxtnode : node.getNext()) {
-                if (!nxtnode.isDeleted()) {
-                    count[0]++;
-                } // ignoring deleted nodes (to get position elsah)
-                if (count[0] == targetPos) {
-                    return nxtnode;
-                }
-                CRDT_Node found = find_by_recursion(nxtnode, targetPos, count);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-            return node; //return last node w2efna andaha
-        }
+//        private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count) {
+//            for (CRDT_Node nxtnode : node.getNext()) {
+//                if (!nxtnode.isDeleted()) {
+//                    count[0]++;
+//                } // ignoring deleted nodes (to get position elsah)
+//                if (count[0] == targetPos) {
+//                    return nxtnode;
+//                }
+//                CRDT_Node found = find_by_recursion(nxtnode, targetPos, count);
+//                if (found != null)
+//                {
+//                    return found;
+//                }
+//            }
+//            return node; //return last node w2efna andaha
+//        }
 
-/// ///////////////////////////////////////////UNDO AND REDO FUNCTIONS//////////////////////////////////////////////////////
-
-
-        public boolean canUndo() // make sure fih haga a3melaha undo w en heya mesh remote op
-        {
-             if (undoStack.isEmpty()||!isLocalOperation(undoStack.peekLast()))
-              {return false;}
-               return true;
-        }
+    /// ///////////////////////////////////////////UNDO AND REDO FUNCTIONS//////////////////////////////////////////////////////
 
 
+    public boolean canUndo() // make sure fih haga a3melaha undo w en heya mesh remote op
+    {
+        if (undoStack.isEmpty()||!isLocalOperation(undoStack.peekLast()))
+        {return false;}
+        return true;
+    }
 
 
-        public boolean canRedo() // make sure fih haga a3melaha redo w mesh remotes
-        {
-            if (redoStack.isEmpty() || !isLocalOperation(redoStack.peekLast()))
-                {return false;}
-                 return true;
 
-        }
+
+    public boolean canRedo() // make sure fih haga a3melaha redo w mesh remotes
+    {
+        if (redoStack.isEmpty() || !isLocalOperation(redoStack.peekLast()))
+        {return false;}
+        return true;
+
+    }
 
 
     private boolean isLocalOperation(Operation op)
@@ -183,7 +389,7 @@ public class CRDT_Document
         }
         undoStack.addLast(Op);
     }
-/// undo
+    /// undo
     public void undo()
     {
         if (canUndo())
@@ -242,7 +448,7 @@ public class CRDT_Document
         redoStack.clear();
     }
 
-/// import
+    /// import
     public void importFromText(String text)
     {
         Clear_Document(); // reset kol haga here / clear
@@ -306,9 +512,9 @@ public class CRDT_Document
         }
     }
 ///  for adham to use in curser tracking
-   /// /////////////////////to do still 25/4 /////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// ////////////////////////////for curser tracking //////////////////////////////////////////////
+/// /////////////////////to do still 25/4 /////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+/// ////////////////////////////for curser tracking //////////////////////////////////////////////
     /**
      * @param visualPos Editor position (0=before first char)
      * @return CRDT node at that position
@@ -341,8 +547,217 @@ public class CRDT_Document
     }
 
 
+
+/// //////////////////////////////FIXES//////////////////////////////////////////////////////////
+//public Identifier localInsert(int position, char c) {
+//    CRDT_Node prev = (position == 0) ? null : find_by_visiblePosition(position - 1); // Handle position 0
+//    Identifier newId = nextId(); // Get new unique ID
+//    CRDT_Node node = new CRDT_Node(c, newId); // Create new node with the character and ID
+//    addNode(prev, node); // Add node to the document
+//
+//    ///////////////// Redo and Undo /////////////////
+//    // Push the insert operation to the undo stack
+//    pushToUndoStack(new Operation(Operation.Type.INSERT, node, position)); // Push operation to undo stack
+//    redoStack.clear(); // Clear redo stack after new operation
+//    ///////////////////////////////////////////////////
+//
+//    return newId; // Return the new identifier for remote users
+//}
+
+//private CRDT_Node find_by_visiblePosition(int pos) {
+//    final int[] count = {-1}; // Use array for recursion (counter)
+//    return find_by_recursion(head, pos, count); // Start recursion from the head node
+//}
+//
+//private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count)
+//{
+//    for (CRDT_Node nxtnode : node.getNext())
+//    {
+//        if (!nxtnode.isDeleted())
+//        {
+//            count[0]++; // Skip deleted nodes
+//        }
+//
+//        if (count[0] == targetPos)
+//        {   System.out.println(" we found the target ");
+//            System.out.println(" the value of node "+ nxtnode.getValue());
+//            return nxtnode; // Return the node at the desired position
+//        }
+//
+//        CRDT_Node found = find_by_recursion(nxtnode, targetPos, count); // Recursively search the next nodes
+//        if (found != null)
+//        {
+//            return found;
+//        }
+//    }
+//
+//    return node; // Return the last node if no other node is found
+//}
+/// ////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//private CRDT_Node find_by_visiblePosition(int pos) {
+//    final int[] count = { -1 }; // Start from dummy head position
+//    return find_by_recursion(head, pos, count);
+//}
+//
+//    private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count) {
+//        for (CRDT_Node nxtnode : node.getNext()) {
+//            if (!nxtnode.isDeleted()) {
+//                count[0]++;
+//            }
+//            if (count[0] == targetPos) {
+//                return nxtnode;
+//            }
+//            CRDT_Node found = find_by_recursion(nxtnode, targetPos, count);
+//            if (found != null) {
+//                return found;
+//            }
+//        }
+//        return node; // fallback: return last valid node
+//    }
+    /// ///////////////////////////////////////////////////////new copilot
+//    private CRDT_Node find_by_visiblePosition(int pos) {
+//        final int[] count = { -1 }; // Start at -1 to account for the dummy head
+//        return find_by_recursion(head, pos, count);
+//    }
+//
+//    private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count) {
+//        for (CRDT_Node nxtnode : node.getNext()) {
+//            if (!nxtnode.isDeleted()) {
+//                count[0]++;
+//            }
+//            if (count[0] == targetPos) {
+//                return nxtnode; // Found the node at the target position
+//            }
+//            CRDT_Node found = find_by_recursion(nxtnode, targetPos, count);
+//            if (found != null) {
+//                return found;
+//            }
+//        }
+//        return node; // Fallback to the last valid node
+//    }
+    /// //////////////////////////////////////////////////////////////////////////
+    public CRDT_Node find_by_visiblePosition(int pos) {
+        final int[] count = { -1 }; // Start at -1 to account for the dummy head
+        return find_by_recursion(head, pos, count);
+    }
+
+    private CRDT_Node find_by_recursion(CRDT_Node node, int targetPos, int[] count) {
+        for (CRDT_Node nxtnode : node.getNext()) {
+            if (!nxtnode.isDeleted()) {
+                count[0]++;
+            }
+            if (count[0] == targetPos) {
+                return nxtnode; // Return the node at the target position
+            }
+            CRDT_Node found = find_by_recursion(nxtnode, targetPos, count);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null; // Return null if no node is found at the target position
+    }
+/// ///////////////////////////////////////////////////////////////////////////////////////first breadth first
+//private void traverse(CRDT_Node root, StringBuilder sb) {
+//    // Use a queue to process nodes level by level
+//    Queue<CRDT_Node> queue = new LinkedList<>();
+//
+//    // Start with the root node
+//    queue.add(root);
+//
+//    while (!queue.isEmpty()) {
+//        // Get the next node from the queue
+//        CRDT_Node current = queue.poll();
+//
+//        // Process the current node
+//        if (!current.isDeleted()) {
+//            sb.append(current.getValue());
+//        }
+//
+//        // Add all children of the current node to the queue
+//        for (CRDT_Node child : current.getNext()) {
+//            queue.add(child);
+//        }
+//    }
+//}
+    /// /////////////////////////////////////////////// copilot version
+    private void traverse(CRDT_Node root, StringBuilder sb) {
+        Queue<CRDT_Node> queue = new LinkedList<>();
+        queue.add(root);
+
+        while (!queue.isEmpty()) {
+            CRDT_Node current = queue.poll();
+
+            // Skip the dummy head node and deleted nodes
+            if (current != head && !current.isDeleted()) {
+                sb.append(current.getValue());
+            }
+
+            // Add all children of the current node to the queue
+            queue.addAll(current.getNext());
+        }
+    }
+    /// ////////////////////print identifiers
+    public void printIdentifiers() {
+        traverseAndPrint(head); // Start traversal from the head node
+    }
+
+    private void traverseAndPrint(CRDT_Node node) {
+        for (CRDT_Node child : node.getNext()) {
+            if (!child.isDeleted()) { // Skip deleted nodes
+                System.out.println("Character: " + child.getValue() + ", Identifier: " + child.getId());
+            }
+            traverseAndPrint(child); // Recursively go through the tree
+        }
+    }
+    /// ////////////////////////////////////Remote operation class //////////////////////////////////////////
+    public void applyRemoteOperation(Remote_Operation op)
+    {
+        if (op.getType() == Remote_Operation.Type.INSERT) {
+            remoteInsert(op.getPrevId(), op.getNewId(), op.getValue());
+        } else {
+            delete(op.getTargetId());
+        }
+    }
+    /// ////////////////////////////////////////////////////////
+//    public Remote_Operation createInsertOperation(int position, char c) {
+//        CRDT_Node prev = find_by_visiblePosition(position - 1);
+//        Identifier newId = nextId();
+//        CRDT_Node node = new CRDT_Node(c, newId);
+//        addNode(prev, node);
+//        pushToUndoStack(new Operation(Operation.Type.INSERT, node, position));
+//        redoStack.clear();
+//        return new Remote_Operation(prev.getId(), newId, c);
+//    }
+//    public Remote_Operation createDeleteOperation(Identifier id) {
+//        CRDT_Node node = index.get(id);
+//        if (node != null) {
+//            node.delete();
+//            pushToUndoStack(new Operation(Operation.Type.DELETE, node, -1));
+//            redoStack.clear();
+//            return new Remote_Operation(id);
+//        }
+//        return null;
+//    }
+    /// //after edit message
+    public Remote_Operation createInsertOperation(int position, char c) {
+        CRDT_Node prev = find_by_visiblePosition(position - 1); // Find previous node
+        Identifier newId = nextId(); // Generate a unique identifier
+        CRDT_Node node = new CRDT_Node(c, newId); // Create a new node
+        addNode(prev, node); // Add the node to the CRDT document
+        return new Remote_Operation(prev.getId(), newId, c); // Return the operation
+    }
+
+
+    public Remote_Operation createDeleteOperation(String targetId) {
+        Identifier id = Identifier.fromString(targetId); // Parse the identifier
+        CRDT_Node node = index.get(id); // Find the node by its identifier
+        if (node != null) {
+            node.delete(); // Mark the node as deleted
+            return new Remote_Operation(id); // Return the delete operation
+        }
+        throw new IllegalArgumentException("Target node not found: " + targetId);
+    }
+
+
 }
-/// ////////////////////////////////////////////////////////////////////////////////////////
-
-
-

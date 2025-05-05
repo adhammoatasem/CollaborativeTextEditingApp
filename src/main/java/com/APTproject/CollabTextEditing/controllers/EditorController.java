@@ -1,5 +1,7 @@
 package com.APTproject.CollabTextEditing.controllers;
 
+import CRDT.CRDT_Document;
+import CRDT.Remote_Operation;
 import com.APTproject.CollabTextEditing.model.*;
 import com.APTproject.CollabTextEditing.service.SessionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,15 +52,41 @@ public class EditorController {
 
 
 
-    @MessageMapping("/session/edit/{sessionId}")
+   /* @MessageMapping("/session/edit/{sessionId}")
     public void editMessage(@Payload EditMessage edit,
                             @DestinationVariable String sessionId) {
         System.out.println("✍️ Edit received from user " + edit.getUserId() + ": " + edit.getCharValue());
         sessionService.applyEdit(edit,sessionService.getSession(sessionId));
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, edit);
+    }*/
+
+    @MessageMapping("/session/edit/{sessionId}")
+    public void editMessage(@Payload EditMessage edit, @DestinationVariable String sessionId) {
+        System.out.println("✍️ Edit received from user " + edit.getUserId() + ": " + edit.getCharValue());
+
+        // Get the session and CRDT document
+        CollabSession session = sessionService.getSession(sessionId);
+        CRDT_Document document = session.getDoc();
+
+        // Determine the type of operation (Insert/Delete)
+        Remote_Operation operation;
+        if (edit.getOperationType() == OperationTypes.INSERT) {
+            operation = document.createInsertOperation(edit.getPosition(), edit.getCharValue());
+        } else if (edit.getOperationType() == OperationTypes.DELETE) {
+            operation = document.createDeleteOperation(edit.getPositionId());
+        } else {
+            System.err.println("❌ Unsupported operation type: " + edit.getOperationType());
+            return;
+        }
+
+        // Apply the operation to the CRDT document
+        document.applyRemoteOperation(operation);
+
+        // Broadcast the operation to all clients in the session
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, operation.toJSON());
     }
 
-    @MessageMapping("/session/requestDoc/{sessionId}")
+    /*@MessageMapping("/session/requestDoc/{sessionId}")
     public void handleRequestDoc(@DestinationVariable String sessionId) {
         CollabSession session = sessionService.getSession(sessionId);
         String currentContent = session.getCrdt().toPlainText();
@@ -66,5 +94,5 @@ public class EditorController {
 
         // Send the latest document content back to the same session topic
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, new DocumentContentMessage(currentContent));
-    }
+    }*/
 }

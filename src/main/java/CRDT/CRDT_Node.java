@@ -4,14 +4,25 @@ import java.util.List;
 public class CRDT_Node {
 
     private final char value;
-    private final Identifier id;
+
+    public void setId(Identifier id) {
+        this.id = id;
+    }
+
+    private  Identifier id;
     private boolean deleted = false;  //0->not deleted //1->deleted
     private List<CRDT_Node> next = new ArrayList<>(); //list of nodes after this one
-
+    private CRDT_Node parent; // Add a parent reference
     /// change next to final if we reallly have to but we will delete insert and the setter which make us have to handle pointers manually //
     public CRDT_Node(char value, Identifier id) {
         this.value = value;
         this.id = id;
+    }
+    public CRDT_Node getParent() {
+        return parent;
+    }
+    public void setParent(CRDT_Node parent) {
+        this.parent = parent;
     }
 
     public char getValue() {
@@ -51,21 +62,28 @@ public class CRDT_Node {
 
     }
 
-    public void setNext(CRDT_Node next) {
-        this.next = next.getNext();
-    }
+//    public void setNext(CRDT_Node next) {
+//        this.next = next.getNext();
+//    }
 
+    public void setNext(List<CRDT_Node> next) {
+        this.next = next;
+    }
 
     ///  Inserts the next node (CRDTChar) after the current node.
 
+//    public void insertNext(CRDT_Node node) {
+//        // Make the current node point to the new node
+//        node.setNext((CRDT_Node) this.next); // New node points to the current next node (if any)
+//        this.setNext(node); // Current node now points to the new node
+//    }
     public void insertNext(CRDT_Node node) {
-        // Make the current node point to the new node
-        node.setNext((CRDT_Node) this.next); // New node points to the current next node (if any)
-        this.setNext(node); // Current node now points to the new node
+        this.next.add(node); // Add the new node to the `next` list
+        node.setParent(this); // Set the parent of the new node
+        this.next.sort((a, b) -> a.getId().compareTo(b.getId())); // Sort the list by ID to maintain CRDT order
     }
-
     ///////////////////////////////////////////for adham (server) to use/////////////////////////////////////////////////////
-/// export fns bagama3hom f crdt_document
+    /// export fns bagama3hom f crdt_document
     public String getExportValue() // hamsek value value crdt ahawelha Lshaklaha f text 3ady w amalna 2 functions ashan n-handle deleted w /n ,/r
     {
         if (deleted)
@@ -83,6 +101,7 @@ public class CRDT_Node {
         return String.valueOf(value); // Reg characters
     }
 
+
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
-

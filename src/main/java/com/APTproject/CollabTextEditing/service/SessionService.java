@@ -2,6 +2,7 @@ package com.APTproject.CollabTextEditing.service;
 
 import CRDT.CRDT_Document;
 import CRDT.Identifier;
+import CRDT.Remote_Operation;
 import com.APTproject.CollabTextEditing.model.*;
 import org.springframework.stereotype.Service;
 
@@ -37,8 +38,8 @@ public class SessionService {
 
         Set<User> users = new HashSet<>();
         SessionCodes sessionCodes = new SessionCodes(sessionId,viewerCode,editorCode);
-
-        CollabSession session = new CollabSession(sessionCodes, null, users);
+        CRDT_Document doc = new CRDT_Document();
+        CollabSession session = new CollabSession(sessionCodes,users,doc);
         sessions.putIfAbsent(sessionId, session);
         editorCodeToSessionId.put(editorCode,sessionId);
         viewerCodeToSessionId.put(viewerCode,sessionId);
@@ -67,16 +68,11 @@ public class SessionService {
 
 
 
-    public void applyEdit(EditMessage msg,CollabSession collabSession) {
-        if ("INSERT".equals(msg.getAction())) {
-            Identifier prev = parseIdentifier(msg.getPrevId());
-            Identifier newId = parseIdentifier(msg.getPositionId());
-            char value = msg.getCharValue().charAt(0);
-            collabSession.getCrdt().remoteInsert(prev, newId, value);
-        } else if ("DELETE".equals(msg.getAction())) {
-            Identifier target = parseIdentifier(msg.getPositionId());
-            collabSession.getCrdt().delete(target);
-        }
+    public void applyEdit(EditMessage msg, CollabSession collabSession) {
+        CRDT_Document doc = collabSession.getDoc();
+
+        Remote_Operation operation = Remote_Operation.fromEditMessage(msg, doc);
+        doc.applyRemoteOperation(operation);
     }
 
     public CollabSession getSessionByCode(String code) {

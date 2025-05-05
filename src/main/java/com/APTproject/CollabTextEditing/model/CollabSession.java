@@ -10,8 +10,8 @@ import java.util.Set;
 @AllArgsConstructor
 public class CollabSession {
     private SessionCodes sessionCodes;
-    private final CRDT_Document crdt;
     private Set<User> users;
+    private CRDT_Document doc;
 
     public void addUser(User user){
          users.add(user);

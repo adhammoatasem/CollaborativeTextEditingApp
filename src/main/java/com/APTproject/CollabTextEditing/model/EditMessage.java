@@ -9,12 +9,23 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class EditMessage {
-    private String action;
-    private String charValue;
-    private String prevId;
-    private String positionId;
-    private String userId;
-    private String sessionId;
-    //private long timestamp;
+    private String type; // e.g., "INSERT" or "DELETE"
+    private String action; // e.g., "INSERT_CHAR" or "DELETE_CHAR"
+    private char charValue; // The character being inserted or deleted
+    private String positionId; // The position identifier in CRDT
+    private String sessionId; // The session ID
+    private String userId; // The user performing the edit
+
+    public OperationTypes getOperationType() {
+        return OperationTypes.valueOf(type.toUpperCase());
+    }
+
+    public int getPosition() {
+        try {
+            return Integer.parseInt(positionId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid position ID: " + positionId);
+        }
+    }
 
 }

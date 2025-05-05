@@ -4,8 +4,8 @@ import java.util.Objects;
 public class Identifier implements Comparable<Identifier>
 {
 
-  private final String userID;
-  private final long counter;
+    private final String userID;
+    private final long counter;
 
     public Identifier(String userID, long counter) {
         this.userID = userID;
@@ -51,12 +51,23 @@ public class Identifier implements Comparable<Identifier>
     {
         return Objects.hash(userID, counter); //generate hashcode
     }
-
+    /// ////////////////understand later ///////////////////
     @Override
     public String toString()  // ashan yetla3 f shakl ( user1,2) -> user one typed the second character
     {
         return "(" + userID + ", " + counter + ")";
     }
+    public static Identifier fromString(String str) {
+        if (str == null || !str.matches("\\(.*?,\\s*\\d+\\)")) {
+            throw new IllegalArgumentException("Invalid Identifier format: " + str);
+        }
 
+        // Remove parentheses and split the string
+        String[] parts = str.substring(1, str.length() - 1).split(",\\s*");
+        String userID = parts[0]; // First part is the userID
+        long counter = Long.parseLong(parts[1]); // Second part is the counter
+
+        return new Identifier(userID, counter);
+    }
 
 }
